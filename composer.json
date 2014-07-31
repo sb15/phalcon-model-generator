@@ -1,0 +1,26 @@
+{
+    "name": "sb15/phalcon-model-generator",
+    "type": "library",
+    "description": "Phalcon Model Generator",
+    "keywords": ["phalcon model generator"],
+    "homepage": "https://github.com/sb15/phalcon-model-generator",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Alexander Perov",
+            "email": "alex@sb6.ru"
+        }
+    ],
+    "require": {
+        "php": ">=5.3"
+    },
+    "require-dev": {
+        "sb15/utils": "dev-master",
+        "sb15/php-class-generator": "dev-master"
+    },
+    "autoload": {
+        "psr-4": {
+            "Sb\\": "src"
+        }
+    }
+}
