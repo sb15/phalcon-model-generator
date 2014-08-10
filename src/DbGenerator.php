@@ -156,7 +156,7 @@ class DbGenerator
             }
             $fieldListField = new AbstractClassField("fieldList");
             $fieldListField->setDefault($fieldList);
-            $fieldListField->setScope("protected");
+            $fieldListField->setScope("public");
             $tableClass->addField($fieldListField);
 
             $getSourceMethod = new AbstractClassMethod("getSource");
@@ -259,7 +259,7 @@ class DbGenerator
             }
 
             $getModelMethod = new AbstractClassMethod('get' . $table['model']);
-            $getModelMethod->addContentLine('return $this->getModel(\'Shop\');');
+            $getModelMethod->addContentLine('return $this->getModel(\''.$table['model'].'\');');
             $getModelMethod->setReturn($table['model']);
             $modelsRepositoryClass->addMethod($getModelMethod);
 
