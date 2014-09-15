@@ -157,7 +157,7 @@ class DbGenerator
             }
             $fieldListField = new AbstractClassField("fieldList");
             $fieldListField->setDefault($fieldList);
-            $fieldListField->setScope("protected");
+            $fieldListField->setScope("public");
             $tableClass->addField($fieldListField);
 
             $getSourceMethod = new AbstractClassMethod("getSource");
