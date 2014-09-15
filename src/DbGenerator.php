@@ -81,6 +81,11 @@ class DbGenerator
         $getDiMethod->setReturn('\Phalcon\DI\FactoryDefault');
         $basicModel->addMethod($getDiMethod);
 
+        $getModelsManager = new AbstractClassMethod('getModelsManager');
+        $getModelsManager->addContentLine('return $this->getDI()->get(\'modelsManager\');');
+        $getModelsManager->setReturn('\Phalcon\Mvc\Model\ManagerInterface');
+        $basicModel->addMethod($getModelsManager);
+
         $getQueryMethod = new AbstractClassMethod('getQuery');
         $getQueryMethodParam = new AbstractMethodParam('phql');
         $getQueryMethod->addParam($getQueryMethodParam);
