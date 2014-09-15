@@ -78,6 +78,7 @@ class DbGenerator
         $basicModel->addMethod($setDiMethod);
         $getDiMethod = new AbstractClassMethod('getDI');
         $getDiMethod->addContentLine('return $this->di;');
+        $getDiMethod->setReturn('\Phalcon\DiInterface');
         $basicModel->addMethod($getDiMethod);
 
         $getQueryMethod = new AbstractClassMethod('getQuery');
