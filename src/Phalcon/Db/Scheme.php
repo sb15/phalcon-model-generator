@@ -26,16 +26,24 @@ class Scheme
         $this->setDi($di);
     }
 
-    public function getScheme()
+    public function getScheme($options = array())
     {
-
         $connection = $this->getConnection();
+
+        $ignoreTables = array();
+        if (array_key_exists('ignore', $options) && is_array($options['ignore'])) {
+            $ignoreTables = $options['ignore'];
+        }
 
         $tables = array();
 
         $tablesList = $connection->listTables();
 
         foreach ($tablesList as $table) {
+
+            if (in_array($table, $ignoreTables)) {
+                continue;
+            }
 
             $columns = array();
             $primary = array();

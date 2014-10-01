@@ -104,11 +104,11 @@ class DbGenerator
 
     }
 
-    public function generate()
+    public function generate($options = array())
     {
 
         $dbScheme = new Scheme($this->di);
-        $tables = $dbScheme->getScheme();
+        $tables = $dbScheme->getScheme($options);
 
         //var_dump($tables);
 
