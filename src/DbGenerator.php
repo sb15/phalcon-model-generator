@@ -46,8 +46,8 @@ class DbGenerator
         $commonClass->addUse("\\Sb\\Utils", "SbUtils");
         $commonClass->addUse('\Phalcon\Mvc\Model');
 
-        $filedList = new AbstractClassField("fieldList");
-        $filedList->setDefault("array()");
+        $fieldList = new AbstractClassField("field_list");
+        $fieldList->setDefault("array()");
 
         $populateMethod = new AbstractClassMethod("populate");
         $populateMethodParam1 = new AbstractMethodParam("data");
@@ -55,13 +55,13 @@ class DbGenerator
         $populateMethod->addParam($populateMethodParam1);
 
         $populateMethod->addContentLine('foreach ($data as $k => $v) {');
-        $populateMethod->addContentLine(AbstractClass::tab(1) . 'if (in_array($k, $this->fieldList)) {');
-        $populateMethod->addContentLine(AbstractClass::tab(2) . '$fn = "set" . SbUtils::wordUnderscoreToCamelCase($k);');
+        $populateMethod->addContentLine(AbstractClass::tab(1) . 'if (in_array($k, $this->field_list)) {');
+        $populateMethod->addContentLine(AbstractClass::tab(2) . '$fn = "set" . \Phalcon\Text::camelize($k);');
         $populateMethod->addContentLine(AbstractClass::tab(2) . '$this->$fn($v);');
         $populateMethod->addContentLine(AbstractClass::tab(1) . '}');
         $populateMethod->addContentLine('}');
 
-        $commonClass->addField($filedList);
+        $commonClass->addField($fieldList);
         $commonClass->addMethod($populateMethod);
         file_put_contents($this->entityDir . "\\Generated\\Common.php", $commonClass);
 
@@ -163,9 +163,9 @@ class DbGenerator
                 $fieldField->setScope("protected");
                 $tableClass->addField($fieldField);
 
-                $fieldList[] = '\'' . SbUtils::wordUnderscoreToCamelCaseFirstLower($field) . '\'';
+                $fieldList[] = '\'' . \Phalcon\Text::camelize($field) . '\'';
             }
-            $fieldListField = new AbstractClassField("fieldList");
+            $fieldListField = new AbstractClassField("field_list");
             $fieldListField->setDefault($fieldList);
             $fieldListField->setScope("public");
             $tableClass->addField($fieldListField);
