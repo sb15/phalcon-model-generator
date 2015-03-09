@@ -163,7 +163,7 @@ class DbGenerator
                 $fieldField->setScope("protected");
                 $tableClass->addField($fieldField);
 
-                $fieldList[] = '\'' . \Phalcon\Text::camelize($field) . '\'';
+                $fieldList[] = '\'' . lcfirst(\Phalcon\Text::camelize($field)) . '\'';
             }
             $fieldListField = new AbstractClassField("field_list");
             $fieldListField->setDefault($fieldList);
