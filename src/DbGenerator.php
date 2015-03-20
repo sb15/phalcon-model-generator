@@ -118,22 +118,22 @@ class DbGenerator
 
         $this->generateCommonMethods();
 
-        $modelsRepositoryClass = new AbstractClass('ModelsRepository');
-        $modelsRepositoryClass->setNamespace('Model');
+        $basicModelsRepositoryClass = new AbstractClass('BasicModelsRepository');
+        $basicModelsRepositoryClass->setNamespace('Model');
         $modelsField = new AbstractClassField('models');
         $modelsField->setDefault("array()");
-        $modelsRepositoryClass->addField($modelsField);
+        $basicModelsRepositoryClass->addField($modelsField);
         $diField = new AbstractClassField('di');
-        $modelsRepositoryClass->addField($diField);
+        $basicModelsRepositoryClass->addField($diField);
         $constructMethod = new AbstractClassMethod('__construct');
         $constructMethodParam = new AbstractMethodParam('di');
         $constructMethod->addParam($constructMethodParam);
         $constructMethod->addContentLine('$this->di = $di;');
-        $modelsRepositoryClass->addMethod($constructMethod);
+        $basicModelsRepositoryClass->addMethod($constructMethod);
         $getDiMethod = new AbstractClassMethod('getDI');
         $getDiMethod->addContentLine('return $this->di;');
         $getDiMethod->setReturn('\Phalcon\DiInterface');
-        $modelsRepositoryClass->addMethod($getDiMethod);
+        $basicModelsRepositoryClass->addMethod($getDiMethod);
         $getModelMethod = new AbstractClassMethod('getModel');
         $getModelMethodParam = new AbstractMethodParam('modelName');
         $getModelMethod->addParam($getModelMethodParam);
@@ -145,7 +145,7 @@ class DbGenerator
         $getModelMethod->addContentLine('}');
         $getModelMethod->addContentLine('return $this->models[$modelName];');
         $getModelMethod->setScope('private');
-        $modelsRepositoryClass->addMethod($getModelMethod);
+        $basicModelsRepositoryClass->addMethod($getModelMethod);
 
 
         foreach ($tables as $table) {
@@ -272,11 +272,20 @@ class DbGenerator
             $getModelMethod = new AbstractClassMethod('get' . $table['model']);
             $getModelMethod->addContentLine('return $this->getModel(\''.$table['model'].'\');');
             $getModelMethod->setReturn($table['model']);
-            $modelsRepositoryClass->addMethod($getModelMethod);
+            $basicModelsRepositoryClass->addMethod($getModelMethod);
 
         }
 
-        file_put_contents($this->modelDir . "\\ModelsRepository.php", $modelsRepositoryClass);
+        file_put_contents($this->modelDir . "\\BasicModelsRepository.php", $basicModelsRepositoryClass);
+
+        if (!is_file($this->modelDir . "\\ModelsRepository.php")) {
+
+            $modelsRepositoryClass = new AbstractClass('ModelsRepository');
+            $modelsRepositoryClass->setNamespace('Model');
+            $modelsRepositoryClass->setExtends('BasicModelsRepository');
+
+            file_put_contents($this->modelDir . "\\ModelsRepository.php", $modelsRepositoryClass);
+        }
 
     }
 
