@@ -144,7 +144,7 @@ class DbGenerator
         $getModelMethod->addContentLine(AbstractClass::tab() . '$this->models[$modelName] = $newModel;');
         $getModelMethod->addContentLine('}');
         $getModelMethod->addContentLine('return $this->models[$modelName];');
-        $getModelMethod->setScope('private');
+        $getModelMethod->setScope('protected');
         $basicModelsRepositoryClass->addMethod($getModelMethod);
 
 
