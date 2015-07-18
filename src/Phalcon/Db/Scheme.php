@@ -68,6 +68,14 @@ class Scheme
             $refs = $connection->describeReferences($table);
             $indexes = $connection->describeIndexes($table);
 
+            foreach ($indexes as $index) {
+                $tableFields['indexes'][] = [
+                    $index->getName(),
+                    $index->getColumns(),
+                    $index->getType(),
+                ];
+            }
+
             foreach ($refs as $ref) {
                 $referencedTable = $ref->getReferencedTable();
                 $columns = $ref->getColumns();

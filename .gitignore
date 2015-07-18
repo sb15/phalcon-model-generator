@@ -9,6 +9,4 @@ nbproject
 composer.lock
 atlassian-ide-plugin.xml
 vendor
-test/Test.php
-test/entities
-test/models
+test/*

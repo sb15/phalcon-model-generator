@@ -266,6 +266,21 @@ class DbGenerator
                 $modelClass->setNamespace('Model');
                 $modelClass->setExtends('Basic');
 
+                if (isset($table['primary']) && count($table['primary']) == 1) {
+
+                    $getByIdMethodParam = $table['primary'][0];
+                    $getByIdMethod = new AbstractClassMethod("get{$table['model']}By" . \Phalcon\Text::camelize($getByIdMethodParam));
+                    $getByIdMethod->addContentLine("return \\Entity\\{$table['model']}::findFirst([");
+                    $getByIdMethod->addContentLine(AbstractClass::tab() . "\"{$table['primary'][0]} = ?1\",");
+                    $getByIdMethod->addContentLine(AbstractClass::tab() . "\"bind\" => [1 => \$".lcfirst(\Phalcon\Text::camelize($getByIdMethodParam))."]");
+                    $getByIdMethod->addContentLine("]);");
+
+                    $getByIdMethod->setReturn("\\{$this->entityNamespace}\\{$table['model']}");
+                    $getMethodParam1 = new AbstractMethodParam(lcfirst(\Phalcon\Text::camelize($getByIdMethodParam)));
+                    $getByIdMethod->addParam($getMethodParam1);
+                    $modelClass->addMethod($getByIdMethod);
+                }
+
                 file_put_contents($this->modelDir . "\\" . $table['model']. '.php', $modelClass);
             }
 
