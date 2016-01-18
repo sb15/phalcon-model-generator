@@ -66,41 +66,43 @@ class DbGenerator
         file_put_contents($this->entityDir . "\\Generated\\Common.php", $commonClass);
 
 
-        $basicModel = new AbstractClass('Basic');
-        $basicModel->setNamespace('Model');
-        $diField = new AbstractClassField('di');
-        $diField->setScope('protected');
-        $basicModel->addField($diField);
-        $setDiMethod = new AbstractClassMethod('setDI');
-        $setDiMethodParam = new AbstractMethodParam('di');
-        $setDiMethod->addParam($setDiMethodParam);
-        $setDiMethod->addContentLine('$this->di = $di;');
-        $basicModel->addMethod($setDiMethod);
-        $getDiMethod = new AbstractClassMethod('getDI');
-        $getDiMethod->addContentLine('return $this->di;');
-        $getDiMethod->setReturn('\Phalcon\DI\FactoryDefault');
-        $basicModel->addMethod($getDiMethod);
+        if (!is_file($this->modelDir . "\\Basic.php")) {
+            $basicModel = new AbstractClass('Basic');
+            $basicModel->setNamespace('Model');
+            $diField = new AbstractClassField('di');
+            $diField->setScope('protected');
+            $basicModel->addField($diField);
+            $setDiMethod = new AbstractClassMethod('setDI');
+            $setDiMethodParam = new AbstractMethodParam('di');
+            $setDiMethod->addParam($setDiMethodParam);
+            $setDiMethod->addContentLine('$this->di = $di;');
+            $basicModel->addMethod($setDiMethod);
+            $getDiMethod = new AbstractClassMethod('getDI');
+            $getDiMethod->addContentLine('return $this->di;');
+            $getDiMethod->setReturn('\Phalcon\DI\FactoryDefault');
+            $basicModel->addMethod($getDiMethod);
 
-        $getModelsManager = new AbstractClassMethod('getModelsManager');
-        $getModelsManager->addContentLine('return $this->getDI()->get(\'modelsManager\');');
-        $getModelsManager->setReturn('\Phalcon\Mvc\Model\ManagerInterface');
-        $basicModel->addMethod($getModelsManager);
+            $getModelsManager = new AbstractClassMethod('getModelsManager');
+            $getModelsManager->addContentLine('return $this->getDI()->get(\'modelsManager\');');
+            $getModelsManager->setReturn('\Phalcon\Mvc\Model\ManagerInterface');
+            $basicModel->addMethod($getModelsManager);
 
-        $getModelsMethod = new AbstractClassMethod('getModels');
-        $getModelsMethod->addContentLine('return $this->getDI()->get(\'modelsRepository\');');
-        $getModelsMethod->setReturn('\Model\ModelsRepository');
-        $basicModel->addMethod($getModelsMethod);
+            $getModelsMethod = new AbstractClassMethod('getModels');
+            $getModelsMethod->addContentLine('return $this->getDI()->get(\'modelsRepository\');');
+            $getModelsMethod->setReturn('\Model\ModelsRepository');
+            $basicModel->addMethod($getModelsMethod);
 
-        $getQueryMethod = new AbstractClassMethod('getQuery');
-        $getQueryMethodParam = new AbstractMethodParam('phql');
-        $getQueryMethod->addParam($getQueryMethodParam);
-        $getQueryMethod->addContentLine('$query = new \Phalcon\Mvc\Model\Query($phql);');
-        $getQueryMethod->addContentLine('$query->setDI($this->getDI());');
-        $getQueryMethod->addContentLine('return $query;');
-        $getQueryMethod->setReturn('\Phalcon\Mvc\Model\Query');
-        $basicModel->addMethod($getQueryMethod);
+            $getQueryMethod = new AbstractClassMethod('getQuery');
+            $getQueryMethodParam = new AbstractMethodParam('phql');
+            $getQueryMethod->addParam($getQueryMethodParam);
+            $getQueryMethod->addContentLine('$query = new \Phalcon\Mvc\Model\Query($phql);');
+            $getQueryMethod->addContentLine('$query->setDI($this->getDI());');
+            $getQueryMethod->addContentLine('return $query;');
+            $getQueryMethod->setReturn('\Phalcon\Mvc\Model\Query');
+            $basicModel->addMethod($getQueryMethod);
 
-        file_put_contents($this->modelDir . "\\Basic.php", $basicModel);
+            file_put_contents($this->modelDir . "\\Basic.php", $basicModel);
+        }
 
     }
 
