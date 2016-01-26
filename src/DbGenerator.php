@@ -40,31 +40,32 @@ class DbGenerator
 
     public function generateCommonMethods()
     {
-        $commonClass = new AbstractClass("Basic");
-        $commonClass->setExtends('Model');
-        $commonClass->setNamespace($this->entityNamespaceGenerated);
-        $commonClass->addUse("\\Sb\\Utils", "SbUtils");
-        $commonClass->addUse('\Phalcon\Mvc\Model');
+        if (!is_file($this->entityDir . "\\Generated\\Basic.php")) {
+            $basicEntityClass = new AbstractClass("Basic");
+            $basicEntityClass->setExtends('Model');
+            $basicEntityClass->setNamespace($this->entityNamespaceGenerated);
+            $basicEntityClass->addUse("\\Sb\\Utils", "SbUtils");
+            $basicEntityClass->addUse('\Phalcon\Mvc\Model');
 
-        $fieldList = new AbstractClassField("field_list");
-        $fieldList->setDefault("array()");
+            $fieldList = new AbstractClassField("field_list");
+            $fieldList->setDefault("array()");
 
-        $populateMethod = new AbstractClassMethod("populate");
-        $populateMethodParam1 = new AbstractMethodParam("data");
-        $populateMethodParam1->setDefaultValue("array()");
-        $populateMethod->addParam($populateMethodParam1);
+            $populateMethod = new AbstractClassMethod("populate");
+            $populateMethodParam1 = new AbstractMethodParam("data");
+            $populateMethodParam1->setDefaultValue("array()");
+            $populateMethod->addParam($populateMethodParam1);
 
-        $populateMethod->addContentLine('foreach ($data as $k => $v) {');
-        $populateMethod->addContentLine(AbstractClass::tab(1) . 'if (in_array($k, $this->field_list)) {');
-        $populateMethod->addContentLine(AbstractClass::tab(2) . '$fn = "set" . \Phalcon\Text::camelize($k);');
-        $populateMethod->addContentLine(AbstractClass::tab(2) . '$this->$fn($v);');
-        $populateMethod->addContentLine(AbstractClass::tab(1) . '}');
-        $populateMethod->addContentLine('}');
+            $populateMethod->addContentLine('foreach ($data as $k => $v) {');
+            $populateMethod->addContentLine(AbstractClass::tab(1) . 'if (in_array($k, $this->field_list)) {');
+            $populateMethod->addContentLine(AbstractClass::tab(2) . '$fn = "set" . \Phalcon\Text::camelize($k);');
+            $populateMethod->addContentLine(AbstractClass::tab(2) . '$this->$fn($v);');
+            $populateMethod->addContentLine(AbstractClass::tab(1) . '}');
+            $populateMethod->addContentLine('}');
 
-        $commonClass->addField($fieldList);
-        $commonClass->addMethod($populateMethod);
-        file_put_contents($this->entityDir . "\\Generated\\Common.php", $commonClass);
-
+            $basicEntityClass->addField($fieldList);
+            $basicEntityClass->addMethod($populateMethod);
+            file_put_contents($this->entityDir . "\\Generated\\Basic.php", $basicEntityClass);
+        }
 
         if (!is_file($this->modelDir . "\\Basic.php")) {
             $basicModel = new AbstractClass('Basic');
@@ -200,7 +201,7 @@ class DbGenerator
 
             if (isset($table['ref_many_to_one'])) {
                 foreach ($table['ref_many_to_one'] as $ref) {
-                    $initializeMethod->addContentLine("\$this->belongsTo(\"{$ref['column']}\", '{$this->entityNamespace}\\{$ref['model']}', \"{$ref['ref_column']}\", array('alias' => '{$ref['model']}'));");
+                    $initializeMethod->addContentLine("\$this->belongsTo(\"{$ref['column']}\", '{$this->entityNamespace}\\{$ref['model']}', \"{$ref['ref_column']}\", array('alias' => '{$ref['model']}', 'reusable' => true));");
                     $getMethod = new AbstractClassMethod('get' . $ref['model']);
                     $getMethod->addContentLine("return \$this->getRelated('{$ref['model']}', \$parameters);");
                     $getMethod->setReturn("\\{$this->entityNamespace}\\{$ref['model']}");
@@ -214,7 +215,7 @@ class DbGenerator
 
             if (isset($table['ref_one_to_many'])) {
                 foreach ($table['ref_one_to_many'] as $ref) {
-                    $initializeMethod->addContentLine("\$this->hasMany(\"{$ref['column']}\", '{$this->entityNamespace}\\{$ref['model']}', \"{$ref['ref_column']}\", array('alias' => '{$ref['model']}'));");
+                    $initializeMethod->addContentLine("\$this->hasMany(\"{$ref['column']}\", '{$this->entityNamespace}\\{$ref['model']}', \"{$ref['ref_column']}\", array('alias' => '{$ref['model']}', 'reusable' => true));");
 
                     $getMethod = new AbstractClassMethod('get' . SbUtils::getNameMany($ref['model']));
                     $getMethod->addContentLine("return \$this->getRelated('{$ref['model']}', \$parameters);");
@@ -240,7 +241,7 @@ class DbGenerator
 
             if (isset($table['ref_one_to_one'])) {
                 foreach ($table['ref_one_to_one'] as $ref) {
-                    $initializeMethod->addContentLine("\$this->hasOne(\"{$ref['column']}\", '{$this->entityNamespace}\\{$ref['model']}', \"{$ref['ref_column']}\", array('alias' => '{$ref['model']}'));");
+                    $initializeMethod->addContentLine("\$this->hasOne(\"{$ref['column']}\", '{$this->entityNamespace}\\{$ref['model']}', \"{$ref['ref_column']}\", array('alias' => '{$ref['model']}', 'reusable' => true));");
 
                     $getMethod = new AbstractClassMethod('get' . $ref['model']);
                     $getMethod->addContentLine("return \$this->getRelated('{$ref['model']}', \$parameters);");
