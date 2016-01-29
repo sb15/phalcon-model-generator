@@ -23,6 +23,8 @@ class DbGenerator
     private $entityNamespaceGenerated = "Entity\\Generated";
     private $modelNamespace = "Model";
 
+    private $relations = [];
+
     public function __construct($di)
     {
         $this->di = $di;
@@ -107,11 +109,41 @@ class DbGenerator
 
     }
 
+    public function prepareRef($ref, $field = 'column')
+    {
+        $doubleRef = [];
+        $models = [];
+
+        foreach ($ref as $k => $refData) {
+            if (in_array($refData['model'], $models)) {
+                $doubleRef[] = $refData['model'];
+            } else {
+                $models[] = $refData['model'];
+            }
+        }
+
+        foreach ($ref as $k => $refData) {
+            if (in_array($refData['model'], $doubleRef)) {
+
+                $temp = preg_replace("#_?id_#uis", "-", $refData[$field]);
+                $temp = preg_replace("#_id_?#uis", "-", $temp);
+                $temp = ucfirst(\Phalcon\Text::camelize($temp));
+                $ref[$k]['alias'] = $temp;
+
+            } else {
+                $ref[$k]['alias'] = $refData['model'];
+            }
+        }
+
+        return $ref;
+    }
+
     public function generate($options = array())
     {
 
         $dbScheme = new Scheme($this->di);
         $tables = $dbScheme->getScheme($options);
+        $this->relations = [];
 
         //var_dump($tables);
 
@@ -200,10 +232,16 @@ class DbGenerator
             $initializeMethod = new AbstractClassMethod("initialize");
 
             if (isset($table['ref_many_to_one'])) {
+
+                $table['ref_many_to_one'] = $this->prepareRef($table['ref_many_to_one']);
+
                 foreach ($table['ref_many_to_one'] as $ref) {
-                    $initializeMethod->addContentLine("\$this->belongsTo(\"{$ref['column']}\", '{$this->entityNamespace}\\{$ref['model']}', \"{$ref['ref_column']}\", array('alias' => '{$ref['model']}', 'reusable' => true));");
-                    $getMethod = new AbstractClassMethod('get' . $ref['model']);
-                    $getMethod->addContentLine("return \$this->getRelated('{$ref['model']}', \$parameters);");
+
+                    $aliasModel = $ref['alias'];
+
+                    $initializeMethod->addContentLine("\$this->belongsTo(\"{$ref['column']}\", '{$this->entityNamespace}\\{$ref['model']}', \"{$ref['ref_column']}\", array('alias' => '{$aliasModel}', 'reusable' => true));");
+                    $getMethod = new AbstractClassMethod('get' . $aliasModel);
+                    $getMethod->addContentLine("return \$this->getRelated('{$aliasModel}', \$parameters);");
                     $getMethod->setReturn("\\{$this->entityNamespace}\\{$ref['model']}");
                     $getMethodParam1 = new AbstractMethodParam("parameters");
                     $getMethodParam1->setDefaultValue("null");
@@ -214,23 +252,29 @@ class DbGenerator
             }
 
             if (isset($table['ref_one_to_many'])) {
-                foreach ($table['ref_one_to_many'] as $ref) {
-                    $initializeMethod->addContentLine("\$this->hasMany(\"{$ref['column']}\", '{$this->entityNamespace}\\{$ref['model']}', \"{$ref['ref_column']}\", array('alias' => '{$ref['model']}', 'reusable' => true));");
 
-                    $getMethod = new AbstractClassMethod('get' . SbUtils::getNameMany($ref['model']));
-                    $getMethod->addContentLine("return \$this->getRelated('{$ref['model']}', \$parameters);");
+                $table['ref_one_to_many'] = $this->prepareRef($table['ref_one_to_many'], 'ref_column');
+
+                foreach ($table['ref_one_to_many'] as $ref) {
+
+                    $aliasModel = $ref['alias'];
+
+                    $initializeMethod->addContentLine("\$this->hasMany(\"{$ref['column']}\", '{$this->entityNamespace}\\{$ref['model']}', \"{$ref['ref_column']}\", array('alias' => '{$aliasModel}', 'reusable' => true));");
+
+                    $getMethod = new AbstractClassMethod('get' . SbUtils::getNameMany($aliasModel));
+                    $getMethod->addContentLine("return \$this->getRelated('{$aliasModel}', \$parameters);");
                     $getMethodParam1 = new AbstractMethodParam('parameters');
                     $getMethodParam1->setDefaultValue('null');
                     $getMethod->addParam($getMethodParam1);
                     $getMethod->setReturn("\\{$this->entityNamespace}\\{$ref['model']}[]");
                     $tableClass->addMethod($getMethod);
 
-                    $varNameMany = SbUtils::getNameMany(lcfirst($ref['model']));
-                    $addMethod = new AbstractClassMethod('add' . SbUtils::getNameMany($ref['model']));
+                    $varNameMany = SbUtils::getNameMany(lcfirst($aliasModel));
+                    $addMethod = new AbstractClassMethod('add' . SbUtils::getNameMany($aliasModel));
                     $addMethod->addContentLine("if (!is_array(\${$varNameMany})) {");
                     $addMethod->addContentLine(AbstractClass::tab() . "\${$varNameMany} = array(\${$varNameMany});");
                     $addMethod->addContentLine("}");
-                    $addMethod->addContentLine("\$this->{$ref['model']} = \${$varNameMany};");
+                    $addMethod->addContentLine("\$this->{$aliasModel} = \${$varNameMany};");
                     $addMethodParam1 = new AbstractMethodParam($varNameMany);
                     $addMethodParam1->setDefaultValue("array()");
                     $addMethod->addParam($addMethodParam1);
@@ -240,11 +284,17 @@ class DbGenerator
             }
 
             if (isset($table['ref_one_to_one'])) {
-                foreach ($table['ref_one_to_one'] as $ref) {
-                    $initializeMethod->addContentLine("\$this->hasOne(\"{$ref['column']}\", '{$this->entityNamespace}\\{$ref['model']}', \"{$ref['ref_column']}\", array('alias' => '{$ref['model']}', 'reusable' => true));");
 
-                    $getMethod = new AbstractClassMethod('get' . $ref['model']);
-                    $getMethod->addContentLine("return \$this->getRelated('{$ref['model']}', \$parameters);");
+                $table['ref_one_to_one'] = $this->prepareRef($table['ref_one_to_one'], 'ref_column');
+
+                foreach ($table['ref_one_to_one'] as $ref) {
+
+                    $aliasModel = $ref['alias'];
+
+                    $initializeMethod->addContentLine("\$this->hasOne(\"{$ref['column']}\", '{$this->entityNamespace}\\{$ref['model']}', \"{$ref['ref_column']}\", array('alias' => '{$aliasModel}', 'reusable' => true));");
+
+                    $getMethod = new AbstractClassMethod('get' . $aliasModel);
+                    $getMethod->addContentLine("return \$this->getRelated('{$aliasModel}', \$parameters);");
                     $getMethod->setReturn("\\{$this->entityNamespace}\\{$ref['model']}");
                     $getMethodParam1 = new AbstractMethodParam('parameters');
                     $getMethodParam1->setDefaultValue('null');
