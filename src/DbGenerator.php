@@ -140,8 +140,6 @@ class DbGenerator
 
             $initializeMethod = new AbstractClassMethod("initialize");
 
-            $useEntities = [];
-
             if (isset($table['ref_many_to_one'])) {
 
                 $table['ref_many_to_one'] = $this->prepareRef($table['ref_many_to_one']);
@@ -153,11 +151,7 @@ class DbGenerator
                     $initializeMethod->addContentLine("\$this->belongsTo('{$ref['column']}', '{$this->entityNamespace}\\{$ref['model']}', '{$ref['ref_column']}', array('alias' => '{$aliasModel}', 'reusable' => true));");
                     $getMethod = new AbstractClassMethod('get' . $aliasModel);
                     $getMethod->addContentLine("return \$this->getRelated('{$aliasModel}', \$parameters);");
-                    if (!in_array($ref['model'], $useEntities, true)) {
-                        $tableClass->addUse("\\{$this->entityNamespace}\\{$ref['model']}");
-                        $useEntities[] = $ref['model'];
-                    }
-                    $getMethod->setReturn("{$ref['model']}");
+                    $getMethod->setReturn("\\{$this->entityNamespace}\\{$ref['model']}");
                     $getMethodParam1 = new AbstractMethodParam("parameters");
                     $getMethodParam1->setDefaultValue("null");
                     $getMethod->addParam($getMethodParam1);
@@ -181,11 +175,7 @@ class DbGenerator
                     $getMethodParam1 = new AbstractMethodParam('parameters');
                     $getMethodParam1->setDefaultValue('null');
                     $getMethod->addParam($getMethodParam1);
-                    if (!in_array($ref['model'], $useEntities, true)) {
-                        $tableClass->addUse("\\{$this->entityNamespace}\\{$ref['model']}");
-                        $useEntities[] = $ref['model'];
-                    }
-                    $getMethod->setReturn("{$ref['model']}[]");
+                    $getMethod->setReturn("\\{$this->entityNamespace}\\{$ref['model']}[]");
                     $tableClass->addMethod($getMethod);
 
                     $varNameMany = SbUtils::getNameMany(lcfirst($aliasModel));
@@ -214,11 +204,7 @@ class DbGenerator
 
                     $getMethod = new AbstractClassMethod('get' . $aliasModel);
                     $getMethod->addContentLine("return \$this->getRelated('{$aliasModel}', \$parameters);");
-                    if (!in_array($ref['model'], $useEntities, true)) {
-                        $tableClass->addUse("\\{$this->entityNamespace}\\{$ref['model']}");
-                        $useEntities[] = $ref['model'];
-                    }
-                    $getMethod->setReturn("{$ref['model']}");
+                    $getMethod->setReturn("\\{$this->entityNamespace}\\{$ref['model']}");
                     $getMethodParam1 = new AbstractMethodParam('parameters');
                     $getMethodParam1->setDefaultValue('null');
                     $getMethod->addParam($getMethodParam1);
@@ -268,12 +254,14 @@ class DbGenerator
 
             $metaContent = file_get_contents($metaFile);
             $modelsMeta = '\Sb\Phalcon\Model\Repository::getModel(\'\') => [' . "\n";
-            $modelsMeta .= '            "PageContent\\\\\\PageContent" instanceof \Model\PageContent\PageContent,' . "\n";
+            $modelsMeta .= '            "PageContent\\\\\\PageContent" instanceof \Model\PageContent\PageContentModel,' . "\n";
 
             foreach ($tables as $table) {
                 $modelName = $table['model'];
                 $modelsMeta .= "            \"{$modelName}\" instanceof \\Model\\{$modelName}Model,\n";
             }
+
+            $modelsMeta = rtrim($modelsMeta, "\n");
 
             $modelsMeta .= "\n        ]";
 
