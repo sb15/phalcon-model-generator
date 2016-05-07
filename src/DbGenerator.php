@@ -272,7 +272,7 @@ class DbGenerator
 
             foreach ($tables as $table) {
                 $modelName = $table['model'];
-                $modelsMeta .= "            \"{$modelName}\" instanceof \\Model\\{$modelName},\n";
+                $modelsMeta .= "            \"{$modelName}\" instanceof \\Model\\{$modelName}Model,\n";
             }
 
             $modelsMeta .= "\n        ]";
