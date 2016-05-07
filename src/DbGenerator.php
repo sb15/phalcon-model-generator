@@ -42,71 +42,16 @@ class DbGenerator
 
     public function generateCommonMethods()
     {
-        if (!is_file($this->entityDir . "\\Generated\\Basic.php")) {
-            $basicEntityClass = new AbstractClass("Basic");
-            $basicEntityClass->setExtends('Model');
-            $basicEntityClass->setNamespace($this->entityNamespaceGenerated);
-            $basicEntityClass->addUse("\\Sb\\Utils", "SbUtils");
-            $basicEntityClass->addUse('\Phalcon\Mvc\Model');
-
-            $fieldList = new AbstractClassField("field_list");
-            $fieldList->setDefault("array()");
-
-            $populateMethod = new AbstractClassMethod("populate");
-            $populateMethodParam1 = new AbstractMethodParam("data");
-            $populateMethodParam1->setDefaultValue("array()");
-            $populateMethod->addParam($populateMethodParam1);
-
-            $populateMethod->addContentLine('foreach ($data as $k => $v) {');
-            $populateMethod->addContentLine(AbstractClass::tab(1) . 'if (in_array($k, $this->field_list)) {');
-            $populateMethod->addContentLine(AbstractClass::tab(2) . '$fn = "set" . \Phalcon\Text::camelize($k);');
-            $populateMethod->addContentLine(AbstractClass::tab(2) . '$this->$fn($v);');
-            $populateMethod->addContentLine(AbstractClass::tab(1) . '}');
-            $populateMethod->addContentLine('}');
-
-            $basicEntityClass->addField($fieldList);
-            $basicEntityClass->addMethod($populateMethod);
-            file_put_contents($this->entityDir . "\\Generated\\Basic.php", $basicEntityClass);
-        }
-
-        if (!is_file($this->modelDir . "\\Basic.php")) {
-            $basicModel = new AbstractClass('Basic');
+        if (!is_file($this->modelDir . "\\BasicModel.php")) {
+            $basicModel = new AbstractClass('BasicModel');
             $basicModel->setNamespace('Model');
-            $diField = new AbstractClassField('di');
-            $diField->setScope('protected');
-            $basicModel->addField($diField);
-            $setDiMethod = new AbstractClassMethod('setDI');
-            $setDiMethodParam = new AbstractMethodParam('di');
-            $setDiMethod->addParam($setDiMethodParam);
-            $setDiMethod->addContentLine('$this->di = $di;');
-            $basicModel->addMethod($setDiMethod);
-            $getDiMethod = new AbstractClassMethod('getDI');
-            $getDiMethod->addContentLine('return $this->di;');
-            $getDiMethod->setReturn('\Phalcon\DI\FactoryDefault');
-            $basicModel->addMethod($getDiMethod);
+            $basicModel->addUse('Phalcon\\Di\\Injectable');
+            $basicModel->setExtends('Injectable');
+            $basicModel->addDocBlock('@property \\Sb\\Phalcon\\Model\\Repository modelsRepository');
+            $basicModel->addDocBlock('@property \\Sb\\Phalcon\\Form\\Repository formsRepository');
 
-            $getModelsManager = new AbstractClassMethod('getModelsManager');
-            $getModelsManager->addContentLine('return $this->getDI()->get(\'modelsManager\');');
-            $getModelsManager->setReturn('\Phalcon\Mvc\Model\ManagerInterface');
-            $basicModel->addMethod($getModelsManager);
-
-            $getModelsMethod = new AbstractClassMethod('getModels');
-            $getModelsMethod->addContentLine('return $this->getDI()->get(\'modelsRepository\');');
-            $getModelsMethod->setReturn('\Model\ModelsRepository');
-            $basicModel->addMethod($getModelsMethod);
-
-            $getQueryMethod = new AbstractClassMethod('getQuery');
-            $getQueryMethodParam = new AbstractMethodParam('phql');
-            $getQueryMethod->addParam($getQueryMethodParam);
-            $getQueryMethod->addContentLine('$query = new \Phalcon\Mvc\Model\Query($phql);');
-            $getQueryMethod->addContentLine('$query->setDI($this->getDI());');
-            $getQueryMethod->addContentLine('return $query;');
-            $getQueryMethod->setReturn('\Phalcon\Mvc\Model\Query');
-            $basicModel->addMethod($getQueryMethod);
-
-            file_put_contents($this->modelDir . "\\Basic.php", $basicModel);
+            file_put_contents($this->modelDir . "\\BasicModel.php", $basicModel);
         }
-
     }
 
     public function prepareRef($ref, $field = 'column')
@@ -153,61 +98,25 @@ class DbGenerator
 
         $this->generateCommonMethods();
 
-        $basicModelsRepositoryClass = new AbstractClass('BasicModelsRepository');
-        $basicModelsRepositoryClass->setNamespace('Model');
-        $modelsField = new AbstractClassField('models');
-        $modelsField->setDefault("array()");
-        $basicModelsRepositoryClass->addField($modelsField);
-        $diField = new AbstractClassField('di');
-        $basicModelsRepositoryClass->addField($diField);
-        $constructMethod = new AbstractClassMethod('__construct');
-        $constructMethodParam = new AbstractMethodParam('di');
-        $constructMethod->addParam($constructMethodParam);
-        $constructMethod->addContentLine('$this->di = $di;');
-        $basicModelsRepositoryClass->addMethod($constructMethod);
-        $getDiMethod = new AbstractClassMethod('getDI');
-        $getDiMethod->addContentLine('return $this->di;');
-        $getDiMethod->setReturn('\Phalcon\DiInterface');
-        $basicModelsRepositoryClass->addMethod($getDiMethod);
-        $getModelMethod = new AbstractClassMethod('getModel');
-        $getModelMethodParam = new AbstractMethodParam('modelName');
-        $getModelMethod->addParam($getModelMethodParam);
-        $getModelMethod->addContentLine('if (!array_key_exists($modelName, $this->models)) {');
-        $getModelMethod->addContentLine(AbstractClass::tab() . '$namespace = \'\\\\Model\\\\\'.$modelName;');
-        $getModelMethod->addContentLine(AbstractClass::tab() . '$newModel = new $namespace;');
-        $getModelMethod->addContentLine(AbstractClass::tab() . '$newModel->setDI($this->di);');
-        $getModelMethod->addContentLine(AbstractClass::tab() . '$this->models[$modelName] = $newModel;');
-        $getModelMethod->addContentLine('}');
-        $getModelMethod->addContentLine('return $this->models[$modelName];');
-        $getModelMethod->setScope('protected');
-        $basicModelsRepositoryClass->addMethod($getModelMethod);
-
-
         foreach ($tables as $table) {
             $tableClass = new AbstractClass($table['model']);
-            $tableClass->setExtends("Basic");
+            $tableClass->addUse('\\Phalcon\\Mvc\\Model');
+            $tableClass->setExtends('Model');
             $tableClass->setNamespace($this->entityNamespaceGenerated);
 
             $tableClassChild = new AbstractClass($table['model']);
             $tableClassChild->setExtends("Generated\\" . $table['model']);
             $tableClassChild->setNamespace($this->entityNamespace);
 
-            $fieldList = array();
             foreach ($table['columns'] as $field) {
                 $fieldField = new AbstractClassField($field);
-                $fieldField->setScope("protected");
+                $fieldField->setScope('protected');
                 $tableClass->addField($fieldField);
-
-                $fieldList[] = '\'' . lcfirst(\Phalcon\Text::camelize($field)) . '\'';
             }
-            $fieldListField = new AbstractClassField("field_list");
-            $fieldListField->setDefault($fieldList);
-            $fieldListField->setScope("public");
-            $tableClass->addField($fieldListField);
 
             $getSourceMethod = new AbstractClassMethod("getSource");
             $getSourceMethod->setScope("public");
-            $getSourceMethod->addContentLine("return \"{$table['name']}\";");
+            $getSourceMethod->addContentLine("return '{$table['name']}';");
             $tableClass->addMethod($getSourceMethod);
 
             /*$onConstructMethod = new AbstractClassMethod("onConstruct");
@@ -231,6 +140,8 @@ class DbGenerator
 
             $initializeMethod = new AbstractClassMethod("initialize");
 
+            $useEntities = [];
+
             if (isset($table['ref_many_to_one'])) {
 
                 $table['ref_many_to_one'] = $this->prepareRef($table['ref_many_to_one']);
@@ -239,10 +150,14 @@ class DbGenerator
 
                     $aliasModel = $ref['alias'];
 
-                    $initializeMethod->addContentLine("\$this->belongsTo(\"{$ref['column']}\", '{$this->entityNamespace}\\{$ref['model']}', \"{$ref['ref_column']}\", array('alias' => '{$aliasModel}', 'reusable' => true));");
+                    $initializeMethod->addContentLine("\$this->belongsTo('{$ref['column']}', '{$this->entityNamespace}\\{$ref['model']}', '{$ref['ref_column']}', array('alias' => '{$aliasModel}', 'reusable' => true));");
                     $getMethod = new AbstractClassMethod('get' . $aliasModel);
                     $getMethod->addContentLine("return \$this->getRelated('{$aliasModel}', \$parameters);");
-                    $getMethod->setReturn("\\{$this->entityNamespace}\\{$ref['model']}");
+                    if (!in_array($ref['model'], $useEntities, true)) {
+                        $tableClass->addUse("\\{$this->entityNamespace}\\{$ref['model']}");
+                        $useEntities[] = $ref['model'];
+                    }
+                    $getMethod->setReturn("{$ref['model']}");
                     $getMethodParam1 = new AbstractMethodParam("parameters");
                     $getMethodParam1->setDefaultValue("null");
                     $getMethod->addParam($getMethodParam1);
@@ -259,14 +174,18 @@ class DbGenerator
 
                     $aliasModel = $ref['alias'];
 
-                    $initializeMethod->addContentLine("\$this->hasMany(\"{$ref['column']}\", '{$this->entityNamespace}\\{$ref['model']}', \"{$ref['ref_column']}\", array('alias' => '{$aliasModel}', 'reusable' => true));");
+                    $initializeMethod->addContentLine("\$this->hasMany('{$ref['column']}', '{$this->entityNamespace}\\{$ref['model']}', '{$ref['ref_column']}', array('alias' => '{$aliasModel}', 'reusable' => true));");
 
                     $getMethod = new AbstractClassMethod('get' . SbUtils::getNameMany($aliasModel));
                     $getMethod->addContentLine("return \$this->getRelated('{$aliasModel}', \$parameters);");
                     $getMethodParam1 = new AbstractMethodParam('parameters');
                     $getMethodParam1->setDefaultValue('null');
                     $getMethod->addParam($getMethodParam1);
-                    $getMethod->setReturn("\\{$this->entityNamespace}\\{$ref['model']}[]");
+                    if (!in_array($ref['model'], $useEntities, true)) {
+                        $tableClass->addUse("\\{$this->entityNamespace}\\{$ref['model']}");
+                        $useEntities[] = $ref['model'];
+                    }
+                    $getMethod->setReturn("{$ref['model']}[]");
                     $tableClass->addMethod($getMethod);
 
                     $varNameMany = SbUtils::getNameMany(lcfirst($aliasModel));
@@ -291,11 +210,15 @@ class DbGenerator
 
                     $aliasModel = $ref['alias'];
 
-                    $initializeMethod->addContentLine("\$this->hasOne(\"{$ref['column']}\", '{$this->entityNamespace}\\{$ref['model']}', \"{$ref['ref_column']}\", array('alias' => '{$aliasModel}', 'reusable' => true));");
+                    $initializeMethod->addContentLine("\$this->hasOne('{$ref['column']}', '{$this->entityNamespace}\\{$ref['model']}', '{$ref['ref_column']}', array('alias' => '{$aliasModel}', 'reusable' => true));");
 
                     $getMethod = new AbstractClassMethod('get' . $aliasModel);
                     $getMethod->addContentLine("return \$this->getRelated('{$aliasModel}', \$parameters);");
-                    $getMethod->setReturn("\\{$this->entityNamespace}\\{$ref['model']}");
+                    if (!in_array($ref['model'], $useEntities, true)) {
+                        $tableClass->addUse("\\{$this->entityNamespace}\\{$ref['model']}");
+                        $useEntities[] = $ref['model'];
+                    }
+                    $getMethod->setReturn("{$ref['model']}");
                     $getMethodParam1 = new AbstractMethodParam('parameters');
                     $getMethodParam1->setDefaultValue('null');
                     $getMethod->addParam($getMethodParam1);
@@ -314,47 +237,52 @@ class DbGenerator
                 file_put_contents($this->entityDir . "\\" . $table['model'] . '.php', $tableClassChild);
             }
 
-            if (!is_file($this->modelDir . "\\" . $table['model'] . '.php')) {
-                $modelClass = new AbstractClass($table['model']);
+            $modelName = $table['model'] . 'Model';
+            if (!is_file($this->modelDir . "\\" . $modelName . '.php')) {
+                $modelClass = new AbstractClass($modelName);
                 $modelClass->setNamespace('Model');
-                $modelClass->setExtends('Basic');
+                $modelClass->setExtends('BasicModel');
+                $modelClass->addUse('\\'.$this->entityNamespace.'\\' . $table['model']);
 
                 if (isset($table['primary']) && count($table['primary']) == 1) {
 
                     $getByIdMethodParam = $table['primary'][0];
                     $getByIdMethod = new AbstractClassMethod("get{$table['model']}By" . \Phalcon\Text::camelize($getByIdMethodParam));
-                    $getByIdMethod->addContentLine("return \\Entity\\{$table['model']}::findFirst([");
-                    $getByIdMethod->addContentLine(AbstractClass::tab() . "\"{$table['primary'][0]} = ?1\",");
-                    $getByIdMethod->addContentLine(AbstractClass::tab() . "\"bind\" => [1 => \$".lcfirst(\Phalcon\Text::camelize($getByIdMethodParam))."]");
+                    $getByIdMethod->addContentLine("return {$table['model']}::findFirst([");
+                    $getByIdMethod->addContentLine(AbstractClass::tab() . "'{$table['primary'][0]} = ?1',");
+                    $getByIdMethod->addContentLine(AbstractClass::tab() . "'bind' => [1 => \$".lcfirst(\Phalcon\Text::camelize($getByIdMethodParam))."]");
                     $getByIdMethod->addContentLine("]);");
 
-                    $getByIdMethod->setReturn("\\{$this->entityNamespace}\\{$table['model']}");
+                    $getByIdMethod->setReturn("{$table['model']}");
                     $getMethodParam1 = new AbstractMethodParam(lcfirst(\Phalcon\Text::camelize($getByIdMethodParam)));
                     $getByIdMethod->addParam($getMethodParam1);
                     $modelClass->addMethod($getByIdMethod);
                 }
 
-                file_put_contents($this->modelDir . "\\" . $table['model']. '.php', $modelClass);
+                file_put_contents($this->modelDir . "\\" . $modelName. '.php', $modelClass);
+            }
+        }
+
+        $metaFile = '.phpstorm.meta.php';
+        if (is_file($metaFile)) {
+
+            $metaContent = file_get_contents($metaFile);
+            $modelsMeta = '\Sb\Phalcon\Model\Repository::getModel(\'\') => [' . "\n";
+            $modelsMeta .= '            "PageContent\\\\\\PageContent" instanceof \Model\PageContent\PageContent,' . "\n";
+
+            foreach ($tables as $table) {
+                $modelName = $table['model'];
+                $modelsMeta .= "            \"{$modelName}\" instanceof \\Model\\{$modelName},\n";
             }
 
-            $getModelMethod = new AbstractClassMethod('get' . $table['model']);
-            $getModelMethod->addContentLine('return $this->getModel(\''.$table['model'].'\');');
-            $getModelMethod->setReturn($table['model']);
-            $basicModelsRepositoryClass->addMethod($getModelMethod);
+            $modelsMeta .= "\n        ]";
 
+            if (preg_match("#\\\\Sb\\\\Phalcon\\\\Model\\\\Repository::getModel\(''\) => \[(.*?)\]#is", $metaContent, $m)) {
+                $metaContent = preg_replace("#\\\\Sb\\\\Phalcon\\\\Model\\\\Repository::getModel\(''\) => \[(.*?)\]#is", $modelsMeta, $metaContent);
+            }
+
+            file_put_contents($metaFile, $metaContent);
         }
-
-        file_put_contents($this->modelDir . "\\BasicModelsRepository.php", $basicModelsRepositoryClass);
-
-        if (!is_file($this->modelDir . "\\ModelsRepository.php")) {
-
-            $modelsRepositoryClass = new AbstractClass('ModelsRepository');
-            $modelsRepositoryClass->setNamespace('Model');
-            $modelsRepositoryClass->setExtends('BasicModelsRepository');
-
-            file_put_contents($this->modelDir . "\\ModelsRepository.php", $modelsRepositoryClass);
-        }
-
     }
 
 } 
