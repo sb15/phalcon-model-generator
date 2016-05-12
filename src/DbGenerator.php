@@ -42,6 +42,100 @@ class DbGenerator
 
     public function generateCommonMethods()
     {
+        if (!is_file($this->entityDir . "\\Generated\\Basic.php")) {
+            $basicEntityClass = new AbstractClass('Basic');
+            $basicEntityClass->addUse('\Phalcon\Mvc\Model');
+            $basicEntityClass->setExtends('Model');
+            $basicEntityClass->setNamespace($this->entityNamespaceGenerated);
+
+            $cacheField = new AbstractClassField('_cache');
+            $cacheField->setScope('protected');
+            $cacheField->setStatic();
+            $cacheField->setDefault('array()');
+            $basicEntityClass->addField($cacheField);
+
+            $disableFirstLevelCacheField = new AbstractClassField('_disableFirstLevelCache');
+            $disableFirstLevelCacheField->setScope('protected');
+            $disableFirstLevelCacheField->setStatic();
+            $disableFirstLevelCacheField->setDefault(false);
+            $basicEntityClass->addField($disableFirstLevelCacheField);
+
+
+            $createKeyMethod = new AbstractClassMethod('_createKey');
+            $createKeyMethodParam1 = new AbstractMethodParam('parameters');
+            $createKeyMethodParam1->setDefaultValue('null');
+            $createKeyMethod->addParam($createKeyMethodParam1);
+            $createKeyMethod->setScope('protected');
+            $createKeyMethod->setStatic();
+
+            $createKeyMethod->addContentLine('$uniqueKey = array();');
+            $createKeyMethod->addContentLine('');
+            $createKeyMethod->addContentLine('foreach ($parameters as $key => $value) {');
+            $createKeyMethod->addContentLine(AbstractClass::tab(1) . 'if (is_scalar($value)) {');
+            $createKeyMethod->addContentLine(AbstractClass::tab(2) . '$uniqueKey[] = $key . \':\' . $value;');
+            $createKeyMethod->addContentLine(AbstractClass::tab(1) . '} else {');
+            $createKeyMethod->addContentLine(AbstractClass::tab(2) . 'if (is_array($value)) {');
+            $createKeyMethod->addContentLine(AbstractClass::tab(3) . '$uniqueKey[] = $key . \':[\' . self::_createKey($value) .\']\';');
+            $createKeyMethod->addContentLine(AbstractClass::tab(2) . '}');
+            $createKeyMethod->addContentLine(AbstractClass::tab(1) . '}');
+            $createKeyMethod->addContentLine('}');
+            $createKeyMethod->addContentLine('');
+            $createKeyMethod->addContentLine('return implode(\',\', $uniqueKey);');
+
+            $basicEntityClass->addMethod($createKeyMethod);
+
+            $findMethod = new AbstractClassMethod('find');
+            $findMethodParam1 = new AbstractMethodParam('parameters');
+            $findMethodParam1->setDefaultValue('null');
+            $findMethod->addParam($findMethodParam1);
+            $findMethod->setScope('public');
+            $findMethod->setStatic();
+
+            $findMethod->addContentLine('if (self::$_disableFirstLevelCache) {');
+            $findMethod->addContentLine(AbstractClass::tab(1) . 'return parent::find($parameters);');
+            $findMethod->addContentLine('}');
+            $findMethod->addContentLine('');
+            $findMethod->addContentLine('$key = \'find:\' . self::_createKey($parameters);');
+            $findMethod->addContentLine('');
+            $findMethod->addContentLine('if (!isset(self::$_cache[$key])) {');
+            $findMethod->addContentLine(AbstractClass::tab(1) . 'self::$_cache[$key] = parent::find($parameters);');
+            $findMethod->addContentLine('}');
+            $findMethod->addContentLine('');
+            $findMethod->addContentLine('return self::$_cache[$key];');
+
+            $basicEntityClass->addMethod($findMethod);
+
+            $findFirstMethod = new AbstractClassMethod('findFirst');
+            $findFirstMethodParam1 = new AbstractMethodParam('parameters');
+            $findFirstMethodParam1->setDefaultValue('null');
+            $findFirstMethod->addParam($findFirstMethodParam1);
+            $findFirstMethod->setScope('public');
+            $findFirstMethod->setStatic();
+
+            $findFirstMethod->addContentLine('if (self::$_disableFirstLevelCache) {');
+            $findFirstMethod->addContentLine(AbstractClass::tab(1) . 'return parent::findFirst($parameters);');
+            $findFirstMethod->addContentLine('}');
+            $findFirstMethod->addContentLine('');
+            $findFirstMethod->addContentLine('$key = \'findFirst:\' . self::_createKey($parameters);');
+            $findFirstMethod->addContentLine('');
+            $findFirstMethod->addContentLine('if (!isset(self::$_cache[$key])) {');
+            $findFirstMethod->addContentLine(AbstractClass::tab(1) . 'self::$_cache[$key] = parent::findFirst($parameters);');
+            $findFirstMethod->addContentLine('}');
+            $findFirstMethod->addContentLine('');
+            $findFirstMethod->addContentLine('return self::$_cache[$key];');
+
+            $basicEntityClass->addMethod($findFirstMethod);
+
+            $disableFirstLevelCacheMethod = new AbstractClassMethod('disableFirstLevelCache');
+            $disableFirstLevelCacheMethod->setScope('public');
+            $disableFirstLevelCacheMethod->setStatic();
+
+            $disableFirstLevelCacheMethod->addContentLine('self::$_disableFirstLevelCache = true;');
+            $basicEntityClass->addMethod($disableFirstLevelCacheMethod);
+
+            file_put_contents($this->entityDir . "\\Generated\\Basic.php", $basicEntityClass);
+        }
+
         if (!is_file($this->modelDir . "\\BasicModel.php")) {
             $basicModel = new AbstractClass('BasicModel');
             $basicModel->setNamespace('Model');
@@ -100,8 +194,7 @@ class DbGenerator
 
         foreach ($tables as $table) {
             $tableClass = new AbstractClass($table['model']);
-            $tableClass->addUse('\\Phalcon\\Mvc\\Model');
-            $tableClass->setExtends('Model');
+            $tableClass->setExtends('Basic');
             $tableClass->setNamespace($this->entityNamespaceGenerated);
 
             $tableClassChild = new AbstractClass($table['model']);
