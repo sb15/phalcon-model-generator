@@ -95,7 +95,7 @@ class DbGenerator
             $findMethod->addContentLine(AbstractClass::tab(1) . 'return parent::find($parameters);');
             $findMethod->addContentLine('}');
             $findMethod->addContentLine('');
-            $findMethod->addContentLine('$key = \'find:\' . self::_createKey($parameters);');
+            $findMethod->addContentLine('$key = get_called_class() . \':find:\' . self::_createKey($parameters);');
             $findMethod->addContentLine('');
             $findMethod->addContentLine('if (!isset(self::$_cache[$key])) {');
             $findMethod->addContentLine(AbstractClass::tab(1) . 'self::$_cache[$key] = parent::find($parameters);');
@@ -116,7 +116,7 @@ class DbGenerator
             $findFirstMethod->addContentLine(AbstractClass::tab(1) . 'return parent::findFirst($parameters);');
             $findFirstMethod->addContentLine('}');
             $findFirstMethod->addContentLine('');
-            $findFirstMethod->addContentLine('$key = \'findFirst:\' . self::_createKey($parameters);');
+            $findFirstMethod->addContentLine('$key = get_called_class() . \':findFirst:\' . self::_createKey($parameters);');
             $findFirstMethod->addContentLine('');
             $findFirstMethod->addContentLine('if (!isset(self::$_cache[$key])) {');
             $findFirstMethod->addContentLine(AbstractClass::tab(1) . 'self::$_cache[$key] = parent::findFirst($parameters);');
