@@ -232,6 +232,7 @@ class DbGenerator
             $tableClass->addMethod($afterFetchMethod);*/
 
             $initializeMethod = new AbstractClassMethod("initialize");
+            $initializeMethod->addContentLine('$this->useDynamicUpdate(true);');
 
             if (isset($table['ref_many_to_one'])) {
 
@@ -249,7 +250,17 @@ class DbGenerator
                     $getMethodParam1->setDefaultValue("null");
                     $getMethod->addParam($getMethodParam1);
 
+                    $variableName = lcfirst($aliasModel);
+                    $setMethod = new AbstractClassMethod('set' . $aliasModel);
+                    $setMethodParam1 = new AbstractMethodParam($variableName);
+                    //$setMethodParam1->setType("\\{$this->entityNamespace}\\{$ref['model']}|null");
+                    $setMethod->addParam($setMethodParam1);
+                    $setMethod->addContentLine("\$this->{$ref['column']} = \${$variableName} ? \${$variableName}->getId() : null;");
+                    $setMethod->addContentLine("return \$this;");
+                    $setMethod->setReturn('$this');
+
                     $tableClass->addMethod($getMethod);
+                    $tableClass->addMethod($setMethod);
                 }
             }
 
@@ -273,12 +284,8 @@ class DbGenerator
 
                     $varNameMany = SbUtils::getNameMany(lcfirst($aliasModel));
                     $addMethod = new AbstractClassMethod('add' . SbUtils::getNameMany($aliasModel));
-                    $addMethod->addContentLine("if (!is_array(\${$varNameMany})) {");
-                    $addMethod->addContentLine(AbstractClass::tab() . "\${$varNameMany} = array(\${$varNameMany});");
-                    $addMethod->addContentLine("}");
                     $addMethod->addContentLine("\$this->{$aliasModel} = \${$varNameMany};");
                     $addMethodParam1 = new AbstractMethodParam($varNameMany);
-                    $addMethodParam1->setDefaultValue("array()");
                     $addMethod->addParam($addMethodParam1);
                     $addMethod->setReturn('void');
                     $tableClass->addMethod($addMethod);
@@ -292,11 +299,19 @@ class DbGenerator
                 foreach ($table['ref_one_to_one'] as $ref) {
 
                     $aliasModel = $ref['alias'];
+                    $variableName = lcfirst($aliasModel);
 
                     $initializeMethod->addContentLine("\$this->hasOne('{$ref['column']}', '{$this->entityNamespace}\\{$ref['model']}', '{$ref['ref_column']}', array('alias' => '{$aliasModel}', 'reusable' => true));");
 
                     $getMethod = new AbstractClassMethod('get' . $aliasModel);
-                    $getMethod->addContentLine("return \$this->getRelated('{$aliasModel}', \$parameters);");
+
+                    $getMethod->addContentLine("\${$variableName} = \$this->getRelated('{$aliasModel}', \$parameters);");
+                    $getMethod->addContentLine("if (false === \${$variableName}) {");
+                    $getMethod->addContentLine(AbstractClass::tab() . "\${$variableName} = new \\{$this->entityNamespace}\\{$ref['model']}();");
+                    $getMethod->addContentLine(AbstractClass::tab() . "\${$variableName}->set" . \Phalcon\Text::camelize($ref['ref_column']) . "(\$this->getId());");
+                    $getMethod->addContentLine('}');
+                    $getMethod->addContentLine("return \${$variableName};");
+
                     $getMethod->setReturn("\\{$this->entityNamespace}\\{$ref['model']}");
                     $getMethodParam1 = new AbstractMethodParam('parameters');
                     $getMethodParam1->setDefaultValue('null');
