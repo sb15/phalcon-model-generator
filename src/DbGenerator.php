@@ -243,6 +243,7 @@ class DbGenerator
                     $aliasModel = $ref['alias'];
 
                     $initializeMethod->addContentLine("\$this->belongsTo('{$ref['column']}', '{$this->entityNamespace}\\{$ref['model']}', '{$ref['ref_column']}', array('alias' => '{$aliasModel}', 'reusable' => true));");
+
                     $getMethod = new AbstractClassMethod('get' . $aliasModel);
                     $getMethod->addContentLine("return \$this->getRelated('{$aliasModel}', \$parameters);");
                     $getMethod->setReturn("\\{$this->entityNamespace}\\{$ref['model']}");
@@ -253,7 +254,7 @@ class DbGenerator
                     $variableName = lcfirst($aliasModel);
                     $setMethod = new AbstractClassMethod('set' . $aliasModel);
                     $setMethodParam1 = new AbstractMethodParam($variableName);
-                    //$setMethodParam1->setType("\\{$this->entityNamespace}\\{$ref['model']}|null");
+                    $setMethodParam1->setDocType("\\{$this->entityNamespace}\\{$ref['model']}|null");
                     $setMethod->addParam($setMethodParam1);
                     $setMethod->addContentLine("\$this->{$ref['column']} = \${$variableName} ? \${$variableName}->getId() : null;");
                     $setMethod->addContentLine("return \$this;");
@@ -274,7 +275,10 @@ class DbGenerator
 
                     $initializeMethod->addContentLine("\$this->hasMany('{$ref['column']}', '{$this->entityNamespace}\\{$ref['model']}', '{$ref['ref_column']}', array('alias' => '{$aliasModel}', 'reusable' => true));");
 
-                    $getMethod = new AbstractClassMethod('get' . SbUtils::getNameMany($aliasModel));
+					$variableName = lcfirst($aliasModel);
+					$varNameMany = SbUtils::getNameMany(lcfirst($aliasModel));
+
+                	$getMethod = new AbstractClassMethod('get' . SbUtils::getNameMany($aliasModel));
                     $getMethod->addContentLine("return \$this->getRelated('{$aliasModel}', \$parameters);");
                     $getMethodParam1 = new AbstractMethodParam('parameters');
                     $getMethodParam1->setDefaultValue('null');
@@ -282,12 +286,13 @@ class DbGenerator
                     $getMethod->setReturn("\\{$this->entityNamespace}\\{$ref['model']}[]");
                     $tableClass->addMethod($getMethod);
 
-                    $varNameMany = SbUtils::getNameMany(lcfirst($aliasModel));
-                    $addMethod = new AbstractClassMethod('add' . SbUtils::getNameMany($aliasModel));
-                    $addMethod->addContentLine("\$this->{$aliasModel} = \${$varNameMany};");
-                    $addMethodParam1 = new AbstractMethodParam($varNameMany);
+                	$addMethod = new AbstractClassMethod('add' . $aliasModel);
+                    $addMethod->addContentLine("\$this->_related['{$aliasModel}'][] = \${$variableName};");
+                    $addMethod->addContentLine("return \$this;");
+                    $addMethodParam1 = new AbstractMethodParam($variableName);                    
+                    $addMethodParam1->setType("\\{$this->entityNamespace}\\{$ref['model']}");
                     $addMethod->addParam($addMethodParam1);
-                    $addMethod->setReturn('void');
+                    $addMethod->setReturn('$this');
                     $tableClass->addMethod($addMethod);
                 }
             }
@@ -319,6 +324,53 @@ class DbGenerator
 
                     $tableClass->addMethod($getMethod);
                 }
+            }
+
+            if (isset($table['ref_many_to_many'])) {
+
+                $table['ref_many_to_many'] = $this->prepareRef($table['ref_many_to_many']);       
+
+                foreach ($table['ref_many_to_many'] as $ref) {
+                    $aliasModel = $ref['alias'];
+                    $variableName = lcfirst($aliasModel);
+                    $varNameMany = SbUtils::getNameMany(lcfirst($aliasModel));
+                    $intermediateModel = $ref['intermediate_model'];
+
+                    $initializeMethod->addContentLine("\$this->hasManyToMany('{$ref['intermediate_column']}', ".
+                        "'{$this->entityNamespace}\\{$ref['intermediate_model']}', '{$ref['intermediate_ref_column']}', ".
+                        "'{$ref['column']}', '{$this->entityNamespace}\\{$ref['model']}', '{$ref['ref_column']}', ".
+                        "array('alias' => '{$aliasModel}', 'reusable' => true));");
+
+                	$getMethod = new AbstractClassMethod('get' . SbUtils::getNameMany($aliasModel));
+                    $getMethod->addContentLine("return \$this->getRelated('{$aliasModel}', \$parameters);");
+                    $getMethod->setReturn("\\{$this->entityNamespace}\\{$ref['model']}[]|null");
+                    $getMethodParam1 = new AbstractMethodParam("parameters");
+                    $getMethodParam1->setDefaultValue("null");
+                    $getMethod->addParam($getMethodParam1);
+                    $tableClass->addMethod($getMethod);
+
+					$addMethod = new AbstractClassMethod('add' . $aliasModel);
+                    $addMethod->addContentLine("\$this->_related['{$aliasModel}'][] = \${$variableName};");
+                    $addMethod->addContentLine("return \$this;");
+                    $addMethodParam1 = new AbstractMethodParam($variableName);                    
+                    $addMethodParam1->setType("\\{$this->entityNamespace}\\{$ref['model']}");
+                    $addMethod->addParam($addMethodParam1);
+                    $addMethod->setReturn('$this');
+                    $tableClass->addMethod($addMethod);
+
+                	$deleteMethod = new AbstractClassMethod('delete' . $aliasModel);					
+                    $deleteMethod->addContentLine("\$this->{$intermediateModel}->delete(function(\$object) use (\${$variableName}) {");
+                    $deleteMethod->addContentLine(AbstractClass::tab() . "/** @var \\{$this->entityNamespace}\\{$intermediateModel} \$object */");
+                    $deleteMethod->addContentLine(AbstractClass::tab() . "return \$object->get{$aliasModel}Id() === \${$variableName}->getId();");
+                    $deleteMethod->addContentLine('});');
+                    $deleteMethod->addContentLine("return \$this;");
+					$deleteMethodParam1 = new AbstractMethodParam($variableName);
+                    $deleteMethodParam1->setType("\\{$this->entityNamespace}\\{$ref['model']}");
+                    $deleteMethod->addParam($deleteMethodParam1);
+                    $deleteMethod->setReturn('$this');
+                    $tableClass->addMethod($deleteMethod);
+                }
+
             }
 
             $tableClass->addMethod($initializeMethod);

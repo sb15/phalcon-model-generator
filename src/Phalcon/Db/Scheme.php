@@ -117,6 +117,49 @@ class Scheme
             }
         }
 
+		
+		$modelIdx = [];
+		foreach ($tables as $tableName => $table) {
+			$modelIdx[$table['model']] = $tableName;
+		}		
+
+		foreach ($tables as $tableName => $table) {
+
+			if (isset($table['ref_one_to_many'])) {
+				foreach ($table['ref_one_to_many'] as $oneToManyRef) {
+
+					$joinModel = $oneToManyRef['model'];
+					$joinTable = $tables[$modelIdx[$joinModel]];
+
+					if (isset($joinTable['ref_many_to_one'])) {
+						
+						foreach ($joinTable['ref_many_to_one'] as $manyToOneRef) {
+							$secondJoinModel = $manyToOneRef['model'];
+
+							if ($table['model'] != $secondJoinModel) {
+								if (!array_key_exists('ref_many_to_many', $tables[$tableName])) {
+									$tables[$tableName]['ref_many_to_many'] = [];
+								}
+
+								$tables[$tableName]['ref_many_to_many'][] = [
+									'intermediate_column' => $oneToManyRef['column'],
+			                        'intermediate_model' => $oneToManyRef['model'],
+			                        'intermediate_ref_column' => $oneToManyRef['ref_column'],
+
+			                        'column' => $manyToOneRef['column'],
+			                        'model' => $manyToOneRef['model'],
+			                        'ref_column' => $manyToOneRef['ref_column'],
+								];								
+							}
+
+						}
+						
+					}
+					
+				}
+			}
+		}
+
         return $tables;
     }
 
