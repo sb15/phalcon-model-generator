@@ -177,6 +177,32 @@ class DbGenerator
         return $ref;
     }
 
+    public function prepareRefMany($ref)
+    {
+        $doubleRef = [];
+        $models = [];
+
+        foreach ($ref as $k => $refData) {
+            if (in_array($refData['model'], $models)) {
+                $doubleRef[] = $refData['model'];
+            } else {
+                $models[] = $refData['model'];
+            }
+        }
+
+        foreach ($ref as $k => $refData) {
+            if (in_array($refData['model'], $doubleRef)) {
+
+                $ref[$k]['alias'] = SbUtils::getNameMany($refData['model']) . 'Via' . $refData['intermediate_model'];
+
+            } else {
+                $ref[$k]['alias'] = $refData['model'];
+            }
+        }
+
+        return $ref;
+    }
+
     public function generate($options = array())
     {
 
@@ -328,7 +354,7 @@ class DbGenerator
 
             if (isset($table['ref_many_to_many'])) {
 
-                $table['ref_many_to_many'] = $this->prepareRef($table['ref_many_to_many']);       
+                $table['ref_many_to_many'] = $this->prepareRefMany($table['ref_many_to_many']);
 
                 foreach ($table['ref_many_to_many'] as $ref) {
                     $aliasModel = $ref['alias'];
