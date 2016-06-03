@@ -387,7 +387,7 @@ class DbGenerator
                 	$deleteMethod = new AbstractClassMethod('delete' . $aliasModel);					
                     $deleteMethod->addContentLine("\$this->{$intermediateModel}->delete(function(\$object) use (\${$variableName}) {");
                     $deleteMethod->addContentLine(AbstractClass::tab() . "/** @var \\{$this->entityNamespace}\\{$intermediateModel} \$object */");
-                    $deleteMethod->addContentLine(AbstractClass::tab() . "return \$object->get{$aliasModel}Id() === \${$variableName}->getId();");
+                    $deleteMethod->addContentLine(AbstractClass::tab() . "return \$object->get{$ref['model']}Id() === \${$variableName}->getId();");
                     $deleteMethod->addContentLine('});');
                     $deleteMethod->addContentLine("return \$this;");
 					$deleteMethodParam1 = new AbstractMethodParam($variableName);
